@@ -5,6 +5,8 @@ body {
   padding: 0;
   font-family: 'Poppins', sans-serif;
   margin-top: 20px;
+  background: linear-gradient(190deg, #a8edea 0%, #fed6e3 100%);
+  color: #333;
 }
 
 .weather-wrapper{

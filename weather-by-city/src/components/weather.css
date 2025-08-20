@@ -57,6 +57,7 @@
 .weather-data .col{
     display: flex;
     align-items: flex-start;
+    position: relative;
     gap: 12px;
     font-size: 22px;
 }
@@ -68,4 +69,20 @@
 .weather-data .col span{
     display: block;
     font-size: 16px;
+}
+.set-current{
+    width: 100%;
+    display: flex;
+    justify-content: end;
+    align-items: center;
+}
+.set-current img{
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    border-radius: 50%;
+    background: #ebfffc;
+    padding: 5px;
+    margin-top: 20px;
+    
 }

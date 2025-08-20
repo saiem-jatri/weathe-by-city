@@ -7,11 +7,16 @@ import humidity_icon from "../assets/humidity.png";
 import rain_icon from "../assets/rain.png";
 import wind_icon from "../assets/wind.png";
 import snow_icon from "../assets/snow.png";
+import current_icon from "../assets/current_location.png";
 import "./weather.css";
+import Spinner from "./Spinner";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; // ✅ must import CSS
 
 export const Weather = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [city, setCity] = useState("");
+  const [loader, setLoader] = useState(false);
 
   const allIcons = {
     "01d": clear_icon,
@@ -29,15 +34,23 @@ export const Weather = () => {
     "13n": snow_icon,
   };
 
-  const search = async (cityName) => {
-    if (!cityName) return;
+  // ✅ Get weather by city
+  const searchByCity = async (cityName) => {
+    if (!cityName) {
+      toast.warn("⚠️ Please enter a city name!");
+      return;
+    }
+
     try {
+      setLoader(true);
       const url = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=metric&appid=5167bd5f62268a107f176419f56c1ddf`;
       const response = await fetch(url);
       const data = await response.json();
+      setLoader(false);
+      setCity(""); // clear input
 
       if (data.cod !== 200) {
-        alert(data.message);
+        toast.error(`❌ ${data.message}`);
         return;
       }
 
@@ -48,55 +61,125 @@ export const Weather = () => {
         location: data.name,
         icon: allIcons[data.weather[0].icon] || clear_icon,
       });
+
+      toast.success(`✅ Weather updated for ${data.name}`);
     } catch (error) {
-      console.error("Error fetching weather data:", error);
+      toast.error("❌ Error fetching weather data");
+      setLoader(false);
+    }
+  };
+
+  // ✅ Get weather by coordinates
+  const searchByCoords = async (lat, lon) => {
+    try {
+      setLoader(true);
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=5167bd5f62268a107f176419f56c1ddf`;
+      const response = await fetch(url);
+      const data = await response.json();
+      setLoader(false);
+
+      if (data.cod !== 200) {
+        toast.error(`❌ ${data.message}`);
+        return;
+      }
+
+      setWeatherData({
+        humidity: data.main.humidity,
+        windSpeed: data.wind.speed,
+        temperature: Math.floor(data.main.temp),
+        location: data.name,
+        icon: allIcons[data.weather[0].icon] || clear_icon,
+      });
+
+      toast.success(`✅ Weather updated for ${data.name}`);
+    } catch (error) {
+      toast.error("❌ Error fetching weather data");
+      setLoader(false);
+    }
+  };
+
+  // ✅ Current location weather
+  const handleCurrentLocation = () => {
+    setCity("");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          searchByCoords(latitude, longitude);
+        },
+        () => {
+          toast.error("❌ Unable to retrieve your location");
+        }
+      );
+    } else {
+      toast.error("❌ Geolocation not supported by your browser");
     }
   };
 
   useEffect(() => {
-    search("Dhaka");
+    handleCurrentLocation();
   }, []);
 
   return (
-    <div className="weather">
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Search"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-        <img
-          src={search_icon}
-          alt="search"
-          onClick={() => search(city)}
-          style={{ cursor: "pointer" }}
-        />
-      </div>
+    <>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          searchByCity(city);
+        }}
+        className="weather"
+      >
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search city..."
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+          <img
+            src={search_icon}
+            alt="search"
+            onClick={() => searchByCity(city)}
+            style={{ cursor: "pointer" }}
+          />
+        </div>
 
-      {weatherData && (
-        <>
-          <img src={weatherData.icon} alt="" className="weather-icon" />
-          <p className="temperature">{weatherData.temperature} °C</p>
-          <p className="location">{weatherData.location}</p>
-          <div className="weather-data">
-            <div className="col">
-              <img src={humidity_icon} alt="" />
-              <div>
-                <p>{weatherData.humidity}%</p>
-                <span>Humidity</span>
+        {loader && <Spinner />}
+
+        {!loader && weatherData && (
+          <>
+            <img src={weatherData.icon} alt="" className="weather-icon" />
+            <p className="temperature">{weatherData.temperature} °C</p>
+            <p className="location">{weatherData.location}</p>
+            <div className="weather-data">
+              <div className="col">
+                <img src={humidity_icon} alt="" />
+                <div>
+                  <p>{weatherData.humidity}%</p>
+                  <span>Humidity</span>
+                </div>
+              </div>
+              <div className="col">
+                <img src={wind_icon} alt="" />
+                <div>
+                  <p>{weatherData.windSpeed} km/h</p>
+                  <span>Wind Speed</span>
+                </div>
               </div>
             </div>
-            <div className="col">
-              <img src={wind_icon} alt="" />
-              <div>
-                <p>{weatherData.windSpeed} km/h</p>
-                <span>Wind Speed</span>
-              </div>
+            <div className="set-current">
+              <img
+                onClick={handleCurrentLocation}
+                src={current_icon}
+                alt="current"
+              />
             </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </form>
+
+      {/* ✅ Toast container must be at root */}
+      {/* <ToastContainer position="top-right" autoClose={3000} /> */}
+    </>
   );
 };
